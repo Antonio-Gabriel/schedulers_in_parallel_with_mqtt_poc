@@ -13,8 +13,6 @@ async def scheduler_thread():
     scheduler.run_cron()
 
 
-# v.jinsha@tcs.com
-
 async def run_cron():
     while True:
         cron.run_pending()
