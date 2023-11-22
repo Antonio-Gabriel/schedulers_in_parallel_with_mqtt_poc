@@ -5,10 +5,16 @@ from src.models.time_model import TimeModel
 from src.models.schedule_model import ScheduleModel
 
 from src.db.in_momery_db import times
-from src.cron.scheduler import Scheduler
+from src.DI.containers import Container
+from src.services.scheduler_service import SchedulerService
 
 app = FastAPI()
-_scheduler = Scheduler()
+
+container = Container()
+container.init_resources()
+container.wire(modules=["src.services.scheduler_service"])
+
+scheduler_service = SchedulerService()
 
 
 @app.get('/', response_model=ScheduleModel)
@@ -39,7 +45,7 @@ def get_times() -> List[TimeModel]:
 def register_scheduler(scheduler: ScheduleModel):
     """endpoint to register a scheduler"""
 
-    _scheduler.add_schedule(scheduler.date, scheduler.times)
+    scheduler_service.add_schedule(scheduler.date, scheduler.times)
 
     return "Schedule registered sucessfully"
 
@@ -47,4 +53,4 @@ def register_scheduler(scheduler: ScheduleModel):
 @app.get("/schedules")
 def get_schedules() -> List:
     """get all schedules"""
-    return _scheduler.get_schedulers()
+    return scheduler_service.get_schedulers()
