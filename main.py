@@ -1,37 +1,36 @@
+import asyncio
 import uvicorn
 
-from threading import Thread, Event
-
+from server import Server
 from src.http.http import app
-from src.cron.scheduler import Scheduler
 
-# Event to sinalize when fastapi server is ready
-server_ready_event = Event()
+from src.services.scheduler_service import SchedulerService, cron
 
 
-def server_thread():
-    """fastapi server thread"""
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-
-    # Notify that the server is ready
-    server_ready_event.set()
-
-
-def scheduler_thread():
+async def scheduler_thread():
     """cron thread"""
-    scheduler = Scheduler()
+    scheduler = SchedulerService()
     scheduler.run_cron()
 
 
+# v.jinsha@tcs.com
+
+async def run_cron():
+    while True:
+        cron.run_pending()
+        await asyncio.sleep(1)
+
+
+async def main():
+    server = Server(config=uvicorn.Config(
+        app, workers=1, loop='asyncio', port=8000, host="127.0.0.1")
+    )
+
+    api = asyncio.create_task(server.serve())
+    cron_threads = asyncio.create_task(scheduler_thread())
+    pending_schedulers_process = asyncio.create_task(run_cron())
+
+    await asyncio.gather(api, cron_threads, pending_schedulers_process)
+
 if __name__ == "__main__":
-    fastapi_thread = Thread(target=server_thread)
-    fastapi_thread.start()
-
-    # Wait the signal get when fastapi server was ready
-    server_ready_event.wait()
-
-    cron_thread = Thread(target=scheduler_thread)
-    cron_thread.start()
-
-    fastapi_thread.join()
-    cron_thread.join()
+    asyncio.run(main())
