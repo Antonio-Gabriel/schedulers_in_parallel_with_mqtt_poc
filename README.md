@@ -1,6 +1,6 @@
 #  Schedulers in parallel with mqtt poc
 
-The service needs to run parallel to the server, observing all registered dates and sending a notification to the mqtt broker when a scheduled time matches, sending data and notifying a front end via socket. 
+The service needs to run parallel to the server, observing all registered dates and sending a notification to the mqtt broker when a scheduled time matches, sending data and notifying a front end via socket.
 
 ## Features
 
