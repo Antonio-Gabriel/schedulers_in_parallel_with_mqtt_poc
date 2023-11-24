@@ -9,8 +9,8 @@ from src.services.mqtt_service import MQTTService
 from src.DI.containers import Container
 from dependency_injector.wiring import inject, Provide
 
-from src.utils.format_date import format_date
-from src.constants.out_colors import GREEN, WHITE, ENDC
+from src.utils.format_date import format_date, DATE_FORMAT
+from src.constants.out_colors import GREEN, WHITE, RED, ENDC
 
 
 @inject
@@ -35,26 +35,44 @@ class SchedulerService:
     def get_schedulers(self):
         return self.__memory_db.get_schedulers()
 
+    def __schedule_task(self, primery_date: datetime, secondary_date: datetime):
+        """shedule a task into cron"""
+        task_list = [
+            cron.every().day.at(date.strftime("%H:%M")).do(
+                self.__run_schedule_threaded,
+                self.__mqtt_service.publish_data_into_broker,
+                triggered_date=date
+            )
+            for date in [primery_date, secondary_date]
+        ]
+
+        return task_list
+
     def run_cron(self):
         cron.clear()
 
-        print(f"[{GREEN}CRON{ENDC}]: {WHITE}RELOADING SCHEDULERS LIST{ENDC}")
-
         # TODO: Validate if the current date wasen't dispatched yet
 
-        if len(self.__memory_db.get_schedulers()) > 0:
-            for schedule in self.__memory_db.get_schedulers():
-                for time in schedule.get("times"):
-                    primary, secondary = time.split('-')
+        if len(self.__memory_db.get_schedulers()) == 0:
+            print(f"[{RED}CRON{ENDC}]: {WHITE}NO SCHEDULERS AVAILABLE{ENDC}")
+            return
 
-                    primary_date = format_date(schedule.get("date"), primary)
-                    secondary_date = format_date(
-                        schedule.get("date"), secondary)
+        for schedule in self.__memory_db.get_schedulers():
+            print(f"[{GREEN}CRON{ENDC}]: {WHITE}RELOADING SCHEDULERS LIST{ENDC}")
 
-                    cron.every().day.at(primary_date.strftime("%H:%M"))\
-                        .do(self.__run_schedule_threaded,
-                            self.__mqtt_service.publish_data_into_broker, triggered_date=primary_date)
+            current_date = datetime.now().date()
+            scheduled_date = datetime.strptime(
+                schedule.get("date"), DATE_FORMAT).date()
 
-                    cron.every().day.at(secondary_date.strftime("%H:%M"))\
-                        .do(self.__run_schedule_threaded,
-                            self.__mqtt_service.publish_data_into_broker, triggered_date=secondary_date)
+            # if current_date >= scheduled_date:
+            #     return
+
+            print("CHEGOU AQUI")
+            for time in schedule.get("times"):
+                primary_time, secondary_time = time.split('-')
+
+                primary_date = format_date(schedule.get("date"), primary_time)
+                secondary_date = format_date(
+                    schedule.get("date"), secondary_time)
+
+                self.__schedule_task(primary_date, secondary_date)
