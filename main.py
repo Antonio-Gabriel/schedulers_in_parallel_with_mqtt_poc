@@ -13,8 +13,6 @@ async def scheduler_thread():
     scheduler.run_cron()
 
 
-# v.jinsha@tcs.com
-
 async def run_cron():
     while True:
         cron.run_pending()
@@ -31,6 +29,7 @@ async def main():
     pending_schedulers_process = asyncio.create_task(run_cron())
 
     await asyncio.gather(api, cron_threads, pending_schedulers_process)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
