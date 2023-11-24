@@ -11,3 +11,4 @@ The service needs to run parallel to the server, observing all registered dates 
 - [ ] Create a service to send encoded audio and some data to mqtt
 - [ ] Create a real-time communication channel via radio frequency
 - [x] Get the api and cron services running in parallel
+- [ ] Configure MQTT image into docker-compose
